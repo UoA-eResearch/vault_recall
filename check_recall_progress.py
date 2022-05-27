@@ -33,7 +33,11 @@ for f in files:
     stat = os.stat(f)
     current_size_bytes = stat.st_blocks * 512
     actual_size_bytes = stat.st_size
-    pct = round(current_size_bytes/actual_size_bytes*100, 2)
+    try:
+        pct = round(current_size_bytes/actual_size_bytes*100, 2)
+    except ZeroDivisionError:
+        print(f"Size of {f} is 0?")
+        pct = 100
     print(f"{f}: {current_size_bytes/1000/1000}MB / {actual_size_bytes/1000/1000}MB ({pct}%)")
     rows.append({
         "filepath": f,
