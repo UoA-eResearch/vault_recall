@@ -12,7 +12,7 @@ import os
 
 if len(sys.argv) > 1:
     filelist = sys.argv[1]
-    files = list(pd.read_csv(filelist, header=None).iloc[:, 0])
+    files = list(pd.read_table(filelist, header=None).iloc[:, 0])
 else:
     files = None
 
