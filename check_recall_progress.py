@@ -85,7 +85,7 @@ if not args.stats_only:
         })
     new_data = pd.DataFrame(rows)
     new_data["run_ended"] = pd.Timestamp.now()
-    df = pd.concat(df, new_data)
+    df = pd.concat([df, new_data])
     df.to_csv(args.progress_file, index=False)
 
 for timestamp in df.run_ended.unique():
