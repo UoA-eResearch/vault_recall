@@ -18,10 +18,10 @@ parser.add_argument('-v', '--verbose', action='store_true', help='print status f
 args = parser.parse_args()
 
 def human_readable_size(size, decimal_places=2):
-    for unit in ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB']:
-        if size < 1024.0 or unit == 'PiB':
+    for unit in ['B', 'KB', 'MB', 'GB', 'TB', 'PB']:
+        if size < 1000 or unit == 'PB':
             break
-        size /= 1024.0
+        size /= 1000
     return f"{size:.{decimal_places}f} {unit}"
 
 def print_summary(df, timestamp):
@@ -34,7 +34,7 @@ def print_summary(df, timestamp):
     timestamp = timestamp.astype('datetime64[s]')
     last_week = timestamp - np.timedelta64(7, 'D')
     n_files_last_week = sum(df.atime >= last_week)
-    size_files_last_week = df.current_size_bytes[df.atime >= last_week].sum() / 2
+    size_files_last_week = df.actual_size_bytes[df.atime >= last_week].sum()
 
     print(f"""Run ended time: {timestamp}
 {n_files_fast}/{total_files} ({n_files_fast / total_files:.2%}) files on fast tier
