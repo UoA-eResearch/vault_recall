@@ -42,6 +42,7 @@ Size on fast tier: {human_readable_size(current_size)}/{human_readable_size(actu
 Note some tools (like du) will report twice the current file size ({human_readable_size(current_size * 2)}), due to replication between OGG and Tamaki
 {n_files_last_week}/{total_files} ({n_files_last_week/total_files:.2%}) files accessed in the week prior (since {last_week})
 {human_readable_size(size_files_last_week)}/{human_readable_size(actual_size)} ({size_files_last_week/actual_size:.2%}) accessed in the week prior (since {last_week})
+Latest atime: {df.atime.max().floor("S")}
 """)
 
 try:
