@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from tqdm import tqdm # Progress bar
+from tqdm.contrib.concurrent import thread_map # Parallel operations
 import pandas as pd # CSV operations
 import numpy as np
 import os # File system operations
@@ -45,6 +46,26 @@ Note some tools (like du) will report twice the current file size ({human_readab
 Latest atime: {df.atime.max().floor("S")}
 """)
 
+def stat_file(f):
+    stat = os.stat(f)
+    current_size_bytes = stat.st_blocks * 512
+    actual_size_bytes = stat.st_size
+    if args.verbose:
+        try:
+            pct = round(current_size_bytes/actual_size_bytes*100, 2)
+        except ZeroDivisionError:
+            pct = 100
+        print(f"{f}: {current_size_bytes/1000/1000}MB / {actual_size_bytes/1000/1000}MB ({pct}%)")
+    return {
+        "filepath": f,
+        "timestamp": pd.Timestamp.now(),
+        "current_size_bytes": current_size_bytes,
+        "actual_size_bytes": actual_size_bytes,
+        "atime": pd.to_datetime(stat.st_atime, unit='s'),
+        "mtime": pd.to_datetime(stat.st_mtime, unit='s'),
+        "ctime": pd.to_datetime(stat.st_ctime, unit='s')
+    }
+
 try:
     # Read prior recall status results, if they exist
     df = pd.read_csv(args.progress_file)
@@ -64,26 +85,8 @@ if not args.stats_only:
 
     print(f"Checking {len(files)} files")
 
-    rows = []
-    for f in tqdm(files):
-        stat = os.stat(f)
-        current_size_bytes = stat.st_blocks * 512
-        actual_size_bytes = stat.st_size
-        if args.verbose:
-            try:
-                pct = round(current_size_bytes/actual_size_bytes*100, 2)
-            except ZeroDivisionError:
-                pct = 100
-            print(f"{f}: {current_size_bytes/1000/1000}MB / {actual_size_bytes/1000/1000}MB ({pct}%)")
-        rows.append({
-            "filepath": f,
-            "timestamp": pd.Timestamp.now(),
-            "current_size_bytes": current_size_bytes,
-            "actual_size_bytes": actual_size_bytes,
-            "atime": pd.to_datetime(stat.st_atime, unit='s'),
-            "mtime": pd.to_datetime(stat.st_mtime, unit='s'),
-            "ctime": pd.to_datetime(stat.st_ctime, unit='s')
-        })
+    # Running thousands of stat operations can take a long time, so lets do them in threads
+    rows = thread_map(stat_file, files, max_workers=32)
     new_data = pd.DataFrame(rows)
     new_data["run_ended"] = pd.Timestamp.now()
     df = pd.concat([df, new_data])
