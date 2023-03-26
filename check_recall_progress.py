@@ -33,16 +33,18 @@ def print_summary(df, timestamp):
     actual_size = df.actual_size_bytes.sum()
 
     timestamp = timestamp.astype('datetime64[s]')
-    last_week = timestamp - np.timedelta64(7, 'D')
-    n_files_last_week = sum(df.atime >= last_week)
-    size_files_last_week = df.actual_size_bytes[df.atime >= last_week].sum()
+    # The unifiles TSM script only archives files that haven't been touched for 21 days
+    N_DAYS = 21
+    cutoff_date = timestamp - np.timedelta64(N_DAYS, 'D')
+    n_files_touched_since_cutoff = sum(df.atime >= cutoff_date)
+    size_files_touched_since_cutoff = df.actual_size_bytes[df.atime >= cutoff_date].sum()
 
     print(f"""Run ended time: {timestamp}
 {n_files_fast}/{total_files} ({n_files_fast / total_files:.2%}) files on fast tier
 Size on fast tier: {human_readable_size(current_size)}/{human_readable_size(actual_size)} ({current_size / actual_size:.2%})
 Note some tools (like du) will report twice the current file size ({human_readable_size(current_size * 2)}), due to replication between OGG and Tamaki
-{n_files_last_week}/{total_files} ({n_files_last_week/total_files:.2%}) files accessed in the week prior (since {last_week})
-{human_readable_size(size_files_last_week)}/{human_readable_size(actual_size)} ({size_files_last_week/actual_size:.2%}) accessed in the week prior (since {last_week})
+{n_files_touched_since_cutoff}/{total_files} ({n_files_touched_since_cutoff/total_files:.2%}) files accessed in the {N_DAYS} days prior (since {cutoff_date})
+{human_readable_size(size_files_touched_since_cutoff)}/{human_readable_size(actual_size)} ({size_files_touched_since_cutoff/actual_size:.2%}) accessed in the {N_DAYS} days prior (since {cutoff_date})
 Latest atime: {df.atime.max().floor("S")}
 """)
 
