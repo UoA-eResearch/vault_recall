@@ -32,6 +32,9 @@ def print_summary(df, timestamp):
     current_size = df.current_size_bytes.sum() / 2
     actual_size = df.actual_size_bytes.sum()
 
+    n_files_small = sum(df.actual_size_bytes < 1e6)
+    size_of_small_files = df.actual_size_bytes[df.actual_size_bytes < 1e6].sum()
+
     timestamp = timestamp.astype('datetime64[s]')
     # The unifiles TSM script only archives files that haven't been touched for 21 days
     N_DAYS = 21
@@ -43,6 +46,8 @@ def print_summary(df, timestamp):
 {n_files_fast}/{total_files} ({n_files_fast / total_files:.2%}) files on fast tier
 Size on fast tier: {human_readable_size(current_size)}/{human_readable_size(actual_size)} ({current_size / actual_size:.2%})
 Note some tools (like du) will report twice the current file size ({human_readable_size(current_size * 2)}), due to replication between OGG and Tamaki
+{n_files_small}/{total_files} ({n_files_small / total_files:.2%}) files are less than 1MB
+These small files sum to {human_readable_size(size_of_small_files)}
 {n_files_touched_since_cutoff}/{total_files} ({n_files_touched_since_cutoff/total_files:.2%}) files accessed in the {N_DAYS} days prior (since {cutoff_date})
 {human_readable_size(size_files_touched_since_cutoff)}/{human_readable_size(actual_size)} ({size_files_touched_since_cutoff/actual_size:.2%}) accessed in the {N_DAYS} days prior (since {cutoff_date})
 Latest atime: {df.atime.max().floor("S")}
