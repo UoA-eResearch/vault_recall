@@ -27,20 +27,27 @@ def human_readable_size(size, decimal_places=2):
 
 def print_summary(df, timestamp):
     df = df[df.run_ended == timestamp]
-    n_files_fast = sum(df.current_size_bytes >= df.actual_size_bytes)
+    on_fast_tier = df.current_size_bytes >= df.actual_size_bytes
+    n_files_fast = sum(on_fast_tier)
     total_files = len(df)
     current_size = df.current_size_bytes.sum() / 2
     actual_size = df.actual_size_bytes.sum()
 
-    n_files_small = sum(df.actual_size_bytes < 1e6)
-    size_of_small_files = df.actual_size_bytes[df.actual_size_bytes < 1e6].sum()
+    is_small = df.actual_size_bytes < 1e6
+    n_files_small = sum(is_small)
+    size_of_small_files = df.actual_size_bytes[is_small].sum()
 
     timestamp = timestamp.astype('datetime64[s]')
     # The unifiles TSM script only archives files that haven't been touched for 21 days
     N_DAYS = 21
     cutoff_date = timestamp - np.timedelta64(N_DAYS, 'D')
-    n_files_touched_since_cutoff = sum(df.atime >= cutoff_date)
-    size_files_touched_since_cutoff = df.actual_size_bytes[df.atime >= cutoff_date].sum()
+    touched_since_cutoff = df.atime >= cutoff_date
+    n_files_touched_since_cutoff = sum(touched_since_cutoff)
+    size_files_touched_since_cutoff = df.actual_size_bytes[touched_since_cutoff].sum()
+
+    problem_files = on_fast_tier & ~is_small & ~touched_since_cutoff
+    n_problem_files = sum(problem_files)
+    size_problem_files = df.actual_size_bytes[problem_files].sum()
 
     print(f"""Run ended time: {timestamp}
 {n_files_fast}/{total_files} ({n_files_fast / total_files:.2%}) files on fast tier
@@ -51,6 +58,8 @@ These small files sum to {human_readable_size(size_of_small_files)}
 {n_files_touched_since_cutoff}/{total_files} ({n_files_touched_since_cutoff/total_files:.2%}) files accessed in the {N_DAYS} days prior (since {cutoff_date})
 {human_readable_size(size_files_touched_since_cutoff)}/{human_readable_size(actual_size)} ({size_files_touched_since_cutoff/actual_size:.2%}) accessed in the {N_DAYS} days prior (since {cutoff_date})
 Latest atime: {df.atime.max().floor("S")}
+{n_problem_files}/{total_files} ({n_problem_files / total_files:.2%}) unmigrated files that should've been (not touched for 21 days and >=1MB)
+Size of unmigrated files: {human_readable_size(size_problem_files)}/{human_readable_size(actual_size)} ({size_problem_files/actual_size:.2%})
 """)
 
 def stat_file(f):
