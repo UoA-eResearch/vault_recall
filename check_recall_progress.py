@@ -63,7 +63,11 @@ Size of unmigrated files: {human_readable_size(size_problem_files)}/{human_reada
 """)
 
 def stat_file(f):
-    stat = os.stat(f)
+    try:
+        stat = os.stat(f)
+    except:
+        print(f"Warning: unable to stat {f}")
+        return
     current_size_bytes = stat.st_blocks * 512
     actual_size_bytes = stat.st_size
     if args.verbose:
