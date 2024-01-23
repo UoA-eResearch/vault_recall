@@ -12,6 +12,6 @@ files = list(pd.read_table(sys.argv[1], header=None).iloc[:, 0])
 
 def set_atime(filename):
     stat = os.stat(filename)
-    os.utime(filename, (1672484400, stat.st_mtime))
+    os.utime(filename, (1672484400, 1672484400))
 
 thread_map(set_atime, files, max_workers=32)
