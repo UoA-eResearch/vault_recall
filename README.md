@@ -10,6 +10,8 @@ Python scripts for recalling files from Vault (object store) or Archive (tape), 
 Both the `recall.py` script, and the `check_recall_progress.py` script, initially rely on a list of filepaths to check, as a plain text file.  
 You can generate such a file with a command similar to `find . -type f > filelist.txt`.  
 
+`recall.py filelist.txt` skips files that are already on the fast tier, so its ETA only covers files that still need recalling, and prints how long each file took to recall.  
+
 Running `check_recall_progress.py -f filelist.txt` will record a CSV of filepaths, timestamps and stat results.  
 The location of this CSV can be specified with the `--progress_file` or `-p` parameter.  
 If not specified, progress_file will default to `~/recall_progress.csv`.  

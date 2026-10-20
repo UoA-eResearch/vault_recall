@@ -3,6 +3,7 @@ from tqdm import tqdm
 from tqdm.contrib.concurrent import thread_map
 
 from glob import glob
+import os
 import sys
 import time
 import pandas as pd
@@ -11,14 +12,30 @@ import pandas as pd
 # find . -type f > filelist.txt
 files = list(pd.read_table(sys.argv[1], header=None).iloc[:, 0])
 
+def is_recalled(filename):
+    # Same check as check_recall_progress.py - a file is on the fast tier once its allocated blocks cover its size
+    try:
+        stat = os.stat(filename)
+    except Exception as e:
+        tqdm.write(f"{e} for {filename}, will try to recall it anyway")
+        return False
+    return stat.st_blocks * 512 >= stat.st_size
+
 def read_file(filename):
+    start = time.monotonic()
     while True:
         try:
             with open(filename, "rb") as f:
                 f.read(1)
-            return
+            break
         except Exception as e:
-            print(f"{e} for {filename}, retrying in 10s")
+            tqdm.write(f"{e} for {filename} after {tqdm.format_interval(time.monotonic() - start)}, retrying in 10s")
             time.sleep(10)
+    tqdm.write(f"Recalled {filename} in {tqdm.format_interval(time.monotonic() - start)}")
 
-thread_map(read_file, files, max_workers=32)
+# Skip files already on the fast tier, so the ETA only reflects files that actually need recalling
+recalled = thread_map(is_recalled, files, max_workers=32, desc="Checking")
+to_recall = [f for f, done in zip(files, recalled) if not done]
+print(f"Skipping {len(files) - len(to_recall)}/{len(files)} files already on fast tier, recalling {len(to_recall)}")
+
+thread_map(read_file, to_recall, max_workers=32, desc="Recalling")
